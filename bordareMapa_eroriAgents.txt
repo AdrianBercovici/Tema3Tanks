@@ -1,0 +1,22 @@
+void DrawMap()
+{
+    int i,j;
+    for(i = 0; i <= mapSize; i++)fout<<'#'; // BORDARE PRIMEI LINII
+    fout<<endl;                                 // LINIA PE CARE INCEPE HARTA
+    for (i = 1; i < mapSize; i++)
+    {
+        for (j = 0; j <= mapSize; j++)
+        {
+            if(j==0)fout<<'#';                 // BORDAREA PRIMEI COLOANE
+            else if(j==mapSize)fout<<'#';      // BORDAREA ULTIMEI COLOANE
+            else if (harta[i][j] == 2)fout<<'T';
+            else if ( harta[i][j] == 0 )
+               // fout<<harta[i][j]<<' ';
+                  fout<<' ';
+            else
+                fout<<'X';
+        }
+        fout<<endl;
+    }
+    for(i=0; i<= mapSize; i++)fout<<'#'; //BORDAREA ULTIMEI LINII
+}
