@@ -8,9 +8,9 @@ using namespace std;
 ifstream fin("test.in");
 ofstream fout("test.out");
 
-#define maxMapSize 20
-#define mapSizeSmall 10
-#define mapSizeMediu 15
+#define maxMapSize 22
+#define mapSizeSmall 12
+#define mapSizeMediu 17
 #define minObstacleDistance 4
 
 int mapSize,harta[maxMapSize][maxMapSize],nrOfAgents;
@@ -140,14 +140,14 @@ void GenerateObsatacoles()
 {
     srand(time(NULL));
     float seedRand;
-    int nrOfObstacles = mapSize / 2;
+    int nrOfObstacles = (mapSize - 2) / 2;
     int i,centerPointI,centerPointJ;
     for (i = 0; i < nrOfObstacles; i++)
     {
         do {
-        centerPointI = rand() % mapSize;
+        centerPointI = rand() % mapSize + 1;
         obstacleMatrix[0][i] = centerPointI;
-        centerPointJ = rand() % mapSize;
+        centerPointJ = rand() % mapSize + 1;
         obstacleMatrix[1][i] = centerPointJ;
         }while (IsValidPosition(i) == 0);
 
@@ -160,7 +160,9 @@ void GenerateObsatacoles()
 
 void Awake()
 {
-    char PlayerImput,validInput = 0;
+    mapSize = mapSizeSmall;
+    nrOfAgents = 2;
+    /*char PlayerImput,validInput = 0;
     cout<<"Introduceti dimensiunea hartii: "<<endl;
     cout<<"Press 'S' for small      Press 'M' for medium        Press 'L' for large"<<endl;
     while (validInput == 0)
@@ -222,7 +224,7 @@ void Awake()
             cout<<"Invalid Input"<<endl;
     }
 
-    validInput = 0;
+    validInput = 0;*/
 }
 
 
@@ -230,12 +232,20 @@ Vector2 FindClosestAvailable(int centerX,int centerY,int Radius)
 {
     int x,y,xp,yp;
     Vector2 pozitie;
+
+    if ( harta[centerX][centerY] == 0 )
+    {
+        pozitie.x = xp;
+        pozitie.y = yp;
+        return pozitie;
+    }
+
     x = -Radius;
     xp = centerX + x;
     for (y = - Radius; y <= Radius; y++)
     {
         yp = centerY + y;
-        if (xp < 0 || xp >= mapSize || yp < 0 || yp >= mapSize)
+        if (xp < 1 || xp >= mapSize || yp < 1 || yp >= mapSize)
             continue;
         else if (harta[xp][yp] == 0)
         {
@@ -250,7 +260,7 @@ Vector2 FindClosestAvailable(int centerX,int centerY,int Radius)
     for (x = -Radius; x <= Radius; x++)
     {
         xp = centerX + x;
-        if (xp < 0 || xp >= mapSize || yp < 0 || yp >= mapSize)
+        if (xp < 1 || xp >= mapSize || yp < 1 || yp >= mapSize)
             continue;
         else if (harta[xp][yp] == 0)
         {
@@ -264,7 +274,7 @@ Vector2 FindClosestAvailable(int centerX,int centerY,int Radius)
     for (y = Radius; y >= -Radius; y--)
     {
         yp = centerY + y;
-        if (xp < 0 || xp >= mapSize || yp < 0 || yp >= mapSize)
+        if (xp < 1 || xp >= mapSize || yp < 1 || yp >= mapSize)
             continue;
         else if (harta[xp][yp] == 0)
         {
@@ -278,7 +288,7 @@ Vector2 FindClosestAvailable(int centerX,int centerY,int Radius)
     for (x = Radius; x >= -Radius; x--)
     {
         xp = centerX + x;
-        if (xp < 0 || xp >= mapSize || yp < 0 || yp >= mapSize)
+        if (xp < 1 || xp >= mapSize || yp < 1 || yp >= mapSize)
             continue;
         else if (harta[xp][yp] == 0)
         {
@@ -299,53 +309,54 @@ void PlaceAgents()
     Vector2 position;
     if (nrOfAgents == 2)
     {
-        targetX = mapSize / 2;
-        targetY = 0;
+        targetX = mapSize / 2 + 1;
+        targetY = 1;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;
 
-        targetX = mapSize / 2;
-        targetY = mapSize - 1;
+        targetX = mapSize / 2 + 1;
+        targetY = mapSize;
         position = FindClosestAvailable(targetX,targetY,1);
+
         harta[position.x][position.y] = 2;
 
     }
     if (nrOfAgents == 3)
     {
-        targetX = mapSize / 2;
-        targetY = 0;
+        targetX = mapSize / 2 + 1;
+        targetY = 1;
         position = FindClosestAvailable(targetX,targetY,1);
-        harta[position.x][position.y] = 2;//tank in dreapta la mij
+        harta[position.x][position.y] = 1;//tank in dreapta la mij
 
-        targetX = mapSize / 2;
-        targetY = mapSize - 1;
+        targetX = mapSize / 2 + 1;
+        targetY = mapSize;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank in stanga la mij
 
-        targetX = 0;
-        targetY = mapSize / 2;
+        targetX = 1;
+        targetY = mapSize / 2 + 1;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank sus la mijloc
     }
     if (nrOfAgents == 4)
     {
-        targetX = mapSize / 2;
-        targetY = 0;
+        targetX = mapSize / 2 + 1;
+        targetY = 1;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank in dreapta la mij
 
-        targetX = mapSize / 2;
-        targetY = mapSize - 1;
+        targetX = mapSize / 2 + 1;
+        targetY = mapSize;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank in stanga la mij
 
-        targetX = 0;
-        targetY = mapSize / 2;
+        targetX = 1;
+        targetY = mapSize / 2 + 1;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank sus la mijloc
 
-        targetX = mapSize - 1;
-        targetY = mapSize / 2;
+        targetX = mapSize;
+        targetY = mapSize / 2 + 1;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank sus la mijloc
     }
@@ -354,14 +365,14 @@ void PlaceAgents()
 void DrawMap()
 {
     int i,j;
-    for (i = 0; i < mapSize; i++)
+    for (i = 0; i <= mapSize; i++)
     {
-        for (j = 0; j < mapSize; j++)
+        for (j = 0; j <= mapSize; j++)
         {
             if (harta[i][j] == 2)
                 fout<<'T'<<' ';
             else if ( harta[i][j] == 0 )
-                fout<<harta[i][j]<<' ';
+                fout<<' '<<' ';
             else
                 fout<<'X'<<' ';
         }
@@ -369,10 +380,27 @@ void DrawMap()
     }
 }
 
+void Bordare()
+{
+    int i,j;
+    for (j = 0; j < maxMapSize; j++ )
+    {
+        harta[0][j] = harta[mapSize][j] = 1;
+    }
+    for (i = 0; i < mapSize; i++)
+    {
+        harta[i][0] = harta[i][mapSize] = 1;
+    }
+
+
+
+}
+
 int main()
 {
     Awake();
     GenerateObsatacoles();
+    Bordare();
     PlaceAgents();
     DrawMap();
 
