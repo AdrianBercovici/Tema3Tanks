@@ -23,6 +23,22 @@ struct Vector2
     int y;
 };
 
+struct WayPointNode
+{
+    //distanta intre 2 patrate oblice e @1.4
+    //distanta intre 2 patrate pe verticala sau orizontala e 1
+    // le dam multiply by 10 ca sa lucram cu numere frum: 10 si 14
+    int gCost;//distance from the startingNode
+    int hCost;//distance from the targetNode
+    int fCost;//suma gCost + fCost;
+    bool walkable;
+    Vector2 previousPosition;
+
+};
+
+WayPointNode wayPoints[maxMapSize][maxMapSize];
+
+
 struct Tank
 {
     Vector2 pozitie;
@@ -160,9 +176,7 @@ void GenerateObsatacoles()
 
 void Awake()
 {
-    mapSize = mapSizeSmall;
-    nrOfAgents = 2;
-    /*char PlayerImput,validInput = 0;
+    char PlayerImput,validInput = 0;
     cout<<"Introduceti dimensiunea hartii: "<<endl;
     cout<<"Press 'S' for small      Press 'M' for medium        Press 'L' for large"<<endl;
     while (validInput == 0)
@@ -224,13 +238,17 @@ void Awake()
             cout<<"Invalid Input"<<endl;
     }
 
-    validInput = 0;*/
+    validInput = 0;
+
+    /*mapSize = maxMapSize;
+    nrOfAgents = 2;
+    cout<<nrOfAgents<<endl;*/
 }
 
 
 Vector2 FindClosestAvailable(int centerX,int centerY,int Radius)
 {
-    int x,y,xp,yp;
+    int x,y,xp = centerX,yp = centerY;
     Vector2 pozitie;
 
     if ( harta[centerX][centerY] == 0 )
@@ -307,6 +325,7 @@ void PlaceAgents()
 {
     int targetX,targetY;
     Vector2 position;
+   // cout<<nrOfAgents;
     if (nrOfAgents == 2)
     {
         targetX = mapSize / 2 + 1;
@@ -326,17 +345,20 @@ void PlaceAgents()
         targetX = mapSize / 2 + 1;
         targetY = 1;
         position = FindClosestAvailable(targetX,targetY,1);
-        harta[position.x][position.y] = 1;//tank in dreapta la mij
+        harta[position.x][position.y] = 2;
 
         targetX = mapSize / 2 + 1;
         targetY = mapSize;
         position = FindClosestAvailable(targetX,targetY,1);
-        harta[position.x][position.y] = 2;//tank in stanga la mij
+
+        harta[position.x][position.y] = 2;
 
         targetX = 1;
         targetY = mapSize / 2 + 1;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank sus la mijloc
+
+
     }
     if (nrOfAgents == 4)
     {
@@ -391,9 +413,43 @@ void Bordare()
     {
         harta[i][0] = harta[i][mapSize] = 1;
     }
+}
 
+void AstarAlgorithm(Vector2 startPosition, Vector2 targetPosition)
+{
+   int i; i++;
+}
 
+void SetWalkable()
+{
+    int  i,j;
+    for ( i = 0; i <= maxMapSize; i++ )
+    {
+        for ( j = 0; j <= maxMapSize; j++ )
+        {
+            if (harta[i][j] == 1)
+                wayPoints[i][j].walkable = false;
+            else
+                wayPoints[i][j].walkable = true;
+        }
+    }
+}
 
+void ShowWalkable()
+{
+    fout<<endl;
+    int i,j;
+    for (i = 0; i <= mapSize; i++)
+    {
+        for (j = 0; j <= mapSize; j++)
+        {
+            if (wayPoints[i][j].walkable == 0)
+                fout<<'X'<<' ';
+            else
+                fout<<' '<<' ';
+        }
+        fout<<endl;
+    }//this shit needs to be lafel with the base afisare;
 }
 
 int main()
@@ -401,8 +457,10 @@ int main()
     Awake();
     GenerateObsatacoles();
     Bordare();
+    SetWalkable();
     PlaceAgents();
     DrawMap();
+    //ShowWalkable();
 
     return 0;
 }
