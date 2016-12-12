@@ -32,9 +32,19 @@ struct WayPointNode
     int hCost;//distance from the targetNode
     int fCost;//suma gCost + fCost;
     bool walkable;
-    Vector2 previousPosition;
-
+    Vector2 nodeCoordonates;
+    WayPointNode *prevPosNode;//asta nu e pt lista
+    WayPointNode *nextNode;//simpla inlantuita e enough i think(i hope)
 };
+
+struct NodeList
+{
+    int listLenght;
+    WayPointNode *first;
+    WayPointNode *last;
+};
+
+NodeList openList,closedList;
 
 WayPointNode wayPoints[maxMapSize][maxMapSize];
 
@@ -333,11 +343,17 @@ void PlaceAgents()
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;
 
+        Agents[0].pozitie.x = position.x;
+        Agents[0].pozitie.y = position.y;
+
         targetX = mapSize / 2 + 1;
         targetY = mapSize;
         position = FindClosestAvailable(targetX,targetY,1);
 
         harta[position.x][position.y] = 2;
+
+        Agents[1].pozitie.x = position.x;
+        Agents[1].pozitie.y = position.y;
 
     }
     if (nrOfAgents == 3)
@@ -347,16 +363,25 @@ void PlaceAgents()
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;
 
+        Agents[0].pozitie.x = position.x;
+        Agents[0].pozitie.y = position.y;
+
         targetX = mapSize / 2 + 1;
         targetY = mapSize;
         position = FindClosestAvailable(targetX,targetY,1);
 
         harta[position.x][position.y] = 2;
 
+        Agents[1].pozitie.x = position.x;
+        Agents[1].pozitie.y = position.y;
+
         targetX = 1;
         targetY = mapSize / 2 + 1;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank sus la mijloc
+
+        Agents[2].pozitie.x = position.x;
+        Agents[2].pozitie.y = position.y;
 
 
     }
@@ -367,20 +392,32 @@ void PlaceAgents()
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank in dreapta la mij
 
+        Agents[0].pozitie.x = position.x;
+        Agents[0].pozitie.y = position.y;
+
         targetX = mapSize / 2 + 1;
         targetY = mapSize;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank in stanga la mij
+
+        Agents[1].pozitie.x = position.x;
+        Agents[1].pozitie.y = position.y;
 
         targetX = 1;
         targetY = mapSize / 2 + 1;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank sus la mijloc
 
+        Agents[2].pozitie.x = position.x;
+        Agents[2].pozitie.y = position.y;
+
         targetX = mapSize;
         targetY = mapSize / 2 + 1;
         position = FindClosestAvailable(targetX,targetY,1);
         harta[position.x][position.y] = 2;//tank sus la mijloc
+
+        Agents[3].pozitie.x = position.x;
+        Agents[3].pozitie.y = position.y;
     }
 }
 
@@ -391,7 +428,9 @@ void DrawMap()
     {
         for (j = 0; j <= mapSize; j++)
         {
-            if (harta[i][j] == 2)
+            if (harta[i][j] == 9)
+                fout<<'*'<<' ';
+            else if (harta[i][j] == 2)
                 fout<<'T'<<' ';
             else if ( harta[i][j] == 0 )
                 fout<<' '<<' ';
@@ -415,9 +454,225 @@ void Bordare()
     }
 }
 
+void AddToList( NodeList &targetList, WayPointNode *node )
+{
+    if (targetList.listLenght == 0)
+    {
+        targetList.first = node;
+        targetList.last = node;
+        targetList.first->nextNode = NULL;
+        targetList.last->nextNode = NULL;
+    }
+    else
+    {
+        targetList.last->nextNode = node;
+        targetList.last = node;
+    }
+    targetList.listLenght++;
+}
+
+void RemoveFromList( NodeList &targetList, WayPointNode *targetnode )
+{
+    WayPointNode *currentNode, *prevNode, *nextNode;
+    currentNode = targetList.first;
+    prevNode = NULL;
+    while (currentNode != targetnode)
+    {
+        prevNode = currentNode;
+        currentNode = targetnode->nextNode;
+    }
+    nextNode = currentNode->nextNode;
+
+    if (prevNode == NULL)//primul element e tinta
+    {
+        if (nextNode != NULL)
+        {
+            targetList.first = nextNode;
+        }
+        else
+        {
+            targetList.first = NULL;
+            targetList.last = NULL;
+        }
+    }
+    else
+    {
+        if (nextNode != NULL)
+        {
+            prevNode->nextNode = nextNode;
+        }
+        else
+        {
+            targetList.last = prevNode;
+        }
+    }
+    targetList.listLenght--;
+    delete(currentNode);
+}
+
+void FindSmallestFcost( NodeList targetLista, WayPointNode  *&smallestFcost )
+{
+    WayPointNode *currentNode = targetLista.first;
+    smallestFcost = currentNode;
+    int minFcost,currentFcost;
+    minFcost = targetLista.first->fCost;
+
+    while(currentNode != NULL)
+    {
+        currentNode = currentNode->nextNode;
+        if (currentNode != NULL)
+        {
+            currentFcost = currentNode->fCost;
+            if (currentFcost < minFcost)
+            {
+                minFcost = currentFcost;
+                smallestFcost = currentNode;
+            }
+        }
+    }
+}
+
+void FindNeighbours(WayPointNode *currentNode, WayPointNode *neighbors[4])
+{
+    int dx[] = {-1,0,1,0},dy[] = {0,1,0,-1},x,y,xp,yp;
+    int i;
+    x = currentNode->nodeCoordonates.x;
+    y = currentNode->nodeCoordonates.y;
+    for (int i = 0; i <= 3; i++ )
+    {
+        xp = x + dx[i];
+        yp = y + dy[i];
+        neighbors[i] = new WayPointNode(wayPoints[xp][yp]);
+    }
+}
+
+bool IsContained(NodeList targetList, WayPointNode *targetNode)
+{
+    WayPointNode *currentNode;
+    currentNode = targetList.first;
+    while (currentNode != NULL)
+    {
+        if (currentNode == targetNode)
+            return true;
+        currentNode = currentNode->nextNode;
+    }
+    return false;
+}
+
+int DistanceBetweenNodes(Vector2 node1, Vector2 node2)
+{
+    int dist = 0;
+    dist = abs(node1.x - node2.x) + abs(node1.y - node2.y);
+    return dist;
+}
+
+struct PathOfNodes
+{
+    int pathLenght;
+    Vector2 nodePath[maxMapSize * maxMapSize];
+};
+
+void TestDrawPath(PathOfNodes testPath)
+{
+    int i;
+    for (i = 0; i < testPath.pathLenght; i++)
+    {
+        harta[testPath.nodePath[i].x][testPath.nodePath[i].y] = 9;
+    }
+}
+
+PathOfNodes ConstructPath(WayPointNode *destination)
+{
+    PathOfNodes carare;
+    WayPointNode *currentNode = destination;
+    carare.pathLenght = 0;
+    while (currentNode != NULL)
+    {
+        carare.nodePath[carare.pathLenght].x = currentNode->nodeCoordonates.x;
+        carare.nodePath[carare.pathLenght].y = currentNode->nodeCoordonates.y;
+        carare.pathLenght++;
+        currentNode = currentNode->prevPosNode;
+    }
+    carare.pathLenght++;
+    TestDrawPath(carare);
+    return carare;
+}
+
 void AstarAlgorithm(Vector2 startPosition, Vector2 targetPosition)
 {
-   int i; i++;
+    openList.listLenght = 0;
+    openList.first = NULL;
+    openList.last = NULL;
+    closedList.listLenght = 0;
+    closedList.first = NULL;
+    closedList.last = NULL;
+    int gCost,hCost,fCost,gPartial,hPartial,fPartial;
+
+    WayPointNode *startNode,*targetNode,*currentNode;
+    startNode = new WayPointNode( wayPoints[startPosition.x][startPosition.y] );
+    targetNode = new WayPointNode( wayPoints[targetPosition.x][targetPosition.y] );
+    if ( (*targetNode).walkable == false)
+    {
+        Vector2 targPoz = FindClosestAvailable(targetPosition.x, targetPosition.y, 1);
+        targetNode = new WayPointNode ( wayPoints[targPoz.x][targPoz.y] );
+    }
+    currentNode = startNode;
+    AddToList(openList,currentNode);
+
+    gCost = DistanceBetweenNodes(currentNode->nodeCoordonates,startNode->nodeCoordonates);
+    hCost = DistanceBetweenNodes(currentNode->nodeCoordonates,targetNode->nodeCoordonates);
+    fCost = gCost + fCost;
+
+    currentNode->gCost = gCost;
+    currentNode->hCost = hCost;
+    currentNode->fCost = fCost;
+    currentNode->prevPosNode = NULL;
+    int iter = 0;
+    while ( openList.listLenght > 0 )
+    {
+        iter++;
+        cout<<"list lenght: "<<openList.listLenght<<endl;
+        FindSmallestFcost(openList,currentNode);
+        cout<<"center Node: "<<currentNode->nodeCoordonates.x<<' '<<currentNode->nodeCoordonates.y<<' '<<iter<<endl;
+        RemoveFromList(openList,currentNode);
+        AddToList(closedList,currentNode);
+        if (currentNode == targetNode)
+        {
+            //pathfound
+            ConstructPath(currentNode);
+            return;
+        }
+        WayPointNode *neighbous[4];
+        FindNeighbours(currentNode,neighbous);
+        for (int i =0; i <= 3; i++)
+        {
+            gPartial = DistanceBetweenNodes(neighbous[i]->nodeCoordonates,startNode->nodeCoordonates);
+            hPartial = DistanceBetweenNodes(neighbous[i]->nodeCoordonates,targetNode->nodeCoordonates);
+            fPartial = gPartial + hPartial;
+            if ( neighbous[i]->walkable == false || IsContained(closedList,neighbous[i]) == true )
+            {
+                cout<<"unavailable nodes: "<<neighbous[i]->nodeCoordonates.x<<' '<<neighbous[i]->nodeCoordonates.y<<' '<<"is Contained: "<<IsContained(closedList,neighbous[i])<<" is walkable: "<<neighbous[i]->walkable<<endl;
+                continue;
+            }
+            else if ( IsContained(openList,neighbous[i]) == false || fPartial < neighbous[i]->fCost)
+            {
+                //cout<<"xx"<<endl;
+                cout<<"available nodes: "<<neighbous[i]->nodeCoordonates.x<<' '<<neighbous[i]->nodeCoordonates.y<<' '<<endl;
+                neighbous[i]->gCost = gPartial;
+                neighbous[i]->hCost = hPartial;
+                neighbous[i]->fCost = fPartial;
+                neighbous[i]->prevPosNode = currentNode;
+                if ( IsContained(openList,neighbous[i]) == false )
+                {
+                    AddToList(openList,neighbous[i]);
+                }
+            }
+        }
+
+        cout<<endl<<endl;
+
+    }
+
 }
 
 void SetWalkable()
@@ -431,6 +686,9 @@ void SetWalkable()
                 wayPoints[i][j].walkable = false;
             else
                 wayPoints[i][j].walkable = true;
+
+            wayPoints[i][j].nodeCoordonates.x = i;
+            wayPoints[i][j].nodeCoordonates.y = j;
         }
     }
 }
@@ -459,8 +717,14 @@ int main()
     Bordare();
     SetWalkable();
     PlaceAgents();
+    Vector2 testPos1,testPos2;
+    testPos1.x = Agents[0].pozitie.x;
+    testPos1.y = Agents[0].pozitie.y;
+    testPos2.x = mapSize / 2;
+    testPos2.y = mapSize / 2;
     DrawMap();
-    //ShowWalkable();
+   // ShowWalkable();
+    AstarAlgorithm(testPos1,testPos2);
 
     return 0;
 }
