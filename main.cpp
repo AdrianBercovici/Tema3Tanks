@@ -1,8 +1,11 @@
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include <cmath>
+#include <windows.h>
+
 using namespace std;
 
 ifstream fin("test.in");
@@ -12,10 +15,12 @@ ofstream fout("test.out");
 #define mapSizeSmall 12
 #define mapSizeMediu 17
 #define minObstacleDistance 4
+#define numberOfFrames 60
 
 int mapSize,harta[maxMapSize][maxMapSize],nrOfAgents;
 int dx[] = {-1,-1,-1,0,1,1,1,0},dy[] = {-1,0,1,1,1,0,-1,-1};
 bool playerPlaying;
+bool gameRunning;
 
 struct Vector2
 {
@@ -206,7 +211,7 @@ void Awake()
             validInput = 1;
         }
         else
-            cout<<"Invalid Input";;
+            cout<<"Invalid Input";
     }
 
     validInput = 0;
@@ -247,6 +252,7 @@ void Awake()
     }
 
     validInput = 0;
+    gameRunning = true;
 
     /*mapSize = maxMapSize;
     nrOfAgents = 2;
@@ -427,17 +433,17 @@ void DrawMap()
         for (j = 0; j <= mapSize; j++)
         {
             if (harta[i][j] == 9)
-                fout<<'*'<<' ';
+                cout<<'*'<<' ';
             else if (harta[i][j] == 2)
-                fout<<'T'<<' ';
+                cout<<'T'<<' ';
             else if ( harta[i][j] == 0 )
-                fout<<' '<<' ';
+                cout<<' '<<' ';
             else if ( harta[i][j] == 7 )
-                fout<<'*'<<' ';
+                cout<<'*'<<' ';
             else
-                fout<<'X'<<' ';
+                cout<<'X'<<' ';
         }
-        fout<<endl;
+        cout<<endl;
     }
 }
 
@@ -659,6 +665,45 @@ void ShowWalkable()
     }//this shit needs to be lafel with the base afisare;
 }
 
+void ClearConsole()
+{
+    system("cls");
+}
+
+void Update()
+{
+    int frames = 0;
+    double threshold = 1 / (double) numberOfFrames;
+    double currentTimer,prevTimer,deltaTime,timeCounter = 0,framesCounter = 0;
+    currentTimer = (double) clock() / (double) CLOCKS_PER_SEC;
+    prevTimer = (double)currentTimer;
+    while (gameRunning)
+    {
+        currentTimer = (double) clock() / (double) CLOCKS_PER_SEC;
+        deltaTime = (double)currentTimer - (double) prevTimer;
+        prevTimer = (double) currentTimer;
+        timeCounter += (double) deltaTime;
+        framesCounter += (double) deltaTime;
+        if (timeCounter >=  threshold )
+        {
+            //if (timeCounter >= threshold * 10)
+            //{
+               // ClearConsole();
+               // DrawMap();
+            //}
+            frames++;
+            timeCounter = 0;
+        }
+        if ( (double) framesCounter > (double) 1 )
+        {
+            cout<<"frames per second: "<<frames<<endl;
+            framesCounter = 0;
+            frames = 0;
+        }
+    }
+
+}
+
 int main()
 {
     Awake();
@@ -679,6 +724,8 @@ int main()
     DrawMap();
     fout<<endl;
     fout<<"target pos x: "<<testPos2.x<<"   target pos y: "<<testPos2.y;
+    fout<<endl<<(double) ( (1 / (double) numberOfFrames)  )<<endl;
+    Update();
 
     return 0;
 }
