@@ -16,8 +16,16 @@ ofstream fout("test.out");
 #define mapSizeMediu 17
 #define minObstacleDistance 4
 #define numberOfFrames 60
+//tankz info
+#define tankCode 2
+#define detectionR 5
+#define shootingR 3
+#define tankMoveInterval 30;
+#define tankHealthPoints 3;
+
 
 int mapSize,harta[maxMapSize][maxMapSize],nrOfAgents;
+int frames = 0;
 int dx[] = {-1,-1,-1,0,1,1,1,0},dy[] = {-1,0,1,1,1,0,-1,-1};
 bool playerPlaying;
 bool gameRunning;
@@ -51,11 +59,25 @@ NodeList openList,closedList;
 
 WayPointNode wayPoints[maxMapSize][maxMapSize];
 
+struct  Path
+{
+    int lenght;
+    Vector2 nodes[ mapSizeMediu * mapSizeMediu ];
+};
 
 struct Tank
 {
     Vector2 pozitie;
+    Vector2 rotatie;
+    Vector2 pointOfInterest;
+    int moveInterval;
     int healthPoints;
+    int detectionRange;
+    int shootingRange;
+    bool hasTarget;
+    bool hasPath;
+    int pathIndex;
+    Path currentPath;
 };
 Tank Agents[4];
 
@@ -334,6 +356,34 @@ Vector2 FindClosestAvailable(int centerX,int centerY,int Radius)
 
 }
 
+void InitializeAgents( Tank &currentTank )
+{
+    currentTank.detectionRange = detectionR;
+    currentTank.shootingRange = shootingR;
+    currentTank.healthPoints = tankHealthPoints;
+    currentTank.moveInterval = tankMoveInterval;
+    currentTank.hasPath = false;
+    currentTank.hasTarget = false;
+    if (currentTank.pozitie.x < mapSize / 2)
+    {
+        currentTank.rotatie.x = 1;
+    }
+    if ( currentTank.pozitie.x >= mapSize / 2 )
+    {
+        currentTank.rotatie.x = -1;
+    }
+
+    if (currentTank.pozitie.y < mapSize / 2)
+    {
+        currentTank.rotatie.y = 1;
+    }
+
+    if (currentTank.pozitie.y >= mapSize / 2)
+    {
+        currentTank.rotatie.y = -1;
+    }
+
+}
 
 void PlaceAgents()
 {
@@ -345,7 +395,7 @@ void PlaceAgents()
         targetX = mapSize / 2 + 1;
         targetY = 1;
         position = FindClosestAvailable(targetX,targetY,1);
-        harta[position.x][position.y] = 2;
+        harta[position.x][position.y] = tankCode;
 
         Agents[0].pozitie.x = position.x;
         Agents[0].pozitie.y = position.y;
@@ -354,7 +404,7 @@ void PlaceAgents()
         targetY = mapSize;
         position = FindClosestAvailable(targetX,targetY,1);
 
-        harta[position.x][position.y] = 2;
+        harta[position.x][position.y] = tankCode;
 
         Agents[1].pozitie.x = position.x;
         Agents[1].pozitie.y = position.y;
@@ -365,7 +415,7 @@ void PlaceAgents()
         targetX = mapSize / 2 + 1;
         targetY = 1;
         position = FindClosestAvailable(targetX,targetY,1);
-        harta[position.x][position.y] = 2;
+        harta[position.x][position.y] = tankCode;
 
         Agents[0].pozitie.x = position.x;
         Agents[0].pozitie.y = position.y;
@@ -374,7 +424,7 @@ void PlaceAgents()
         targetY = mapSize;
         position = FindClosestAvailable(targetX,targetY,1);
 
-        harta[position.x][position.y] = 2;
+        harta[position.x][position.y] = tankCode;
 
         Agents[1].pozitie.x = position.x;
         Agents[1].pozitie.y = position.y;
@@ -382,7 +432,7 @@ void PlaceAgents()
         targetX = 1;
         targetY = mapSize / 2 + 1;
         position = FindClosestAvailable(targetX,targetY,1);
-        harta[position.x][position.y] = 2;//tank sus la mijloc
+        harta[position.x][position.y] = tankCode;//tank sus la mijloc
 
         Agents[2].pozitie.x = position.x;
         Agents[2].pozitie.y = position.y;
@@ -394,7 +444,7 @@ void PlaceAgents()
         targetX = mapSize / 2 + 1;
         targetY = 1;
         position = FindClosestAvailable(targetX,targetY,1);
-        harta[position.x][position.y] = 2;//tank in dreapta la mij
+        harta[position.x][position.y] = tankCode;//tank in dreapta la mij
 
         Agents[0].pozitie.x = position.x;
         Agents[0].pozitie.y = position.y;
@@ -402,7 +452,7 @@ void PlaceAgents()
         targetX = mapSize / 2 + 1;
         targetY = mapSize;
         position = FindClosestAvailable(targetX,targetY,1);
-        harta[position.x][position.y] = 2;//tank in stanga la mij
+        harta[position.x][position.y] = tankCode;//tank in stanga la mij
 
         Agents[1].pozitie.x = position.x;
         Agents[1].pozitie.y = position.y;
@@ -410,7 +460,7 @@ void PlaceAgents()
         targetX = 1;
         targetY = mapSize / 2 + 1;
         position = FindClosestAvailable(targetX,targetY,1);
-        harta[position.x][position.y] = 2;//tank sus la mijloc
+        harta[position.x][position.y] = tankCode;//tank sus la mijloc
 
         Agents[2].pozitie.x = position.x;
         Agents[2].pozitie.y = position.y;
@@ -418,10 +468,15 @@ void PlaceAgents()
         targetX = mapSize;
         targetY = mapSize / 2 + 1;
         position = FindClosestAvailable(targetX,targetY,1);
-        harta[position.x][position.y] = 2;//tank sus la mijloc
+        harta[position.x][position.y] = tankCode;//tank sus la mijloc
 
         Agents[3].pozitie.x = position.x;
         Agents[3].pozitie.y = position.y;
+    }
+
+    for (int i = 0; i < nrOfAgents; i++)
+    {
+        InitializeAgents(Agents[i]);
     }
 }
 
@@ -438,8 +493,6 @@ void DrawMap()
                 cout<<'T'<<' ';
             else if ( harta[i][j] == 0 )
                 cout<<' '<<' ';
-            else if ( harta[i][j] == 7 )
-                cout<<'*'<<' ';
             else
                 cout<<'X'<<' ';
         }
@@ -529,10 +582,26 @@ void FindNeighbours( WayPointNode centerNode, WayPointNode neighbours[4] )
     }
 }
 
-void ConstructPath( WayPointNode targetNode )
+void ReversePath( Path &targetPath )
+{
+    int pathLengh = targetPath.lenght,i;
+    Vector2 aux;
+    for (i = 0; i < pathLengh / 2; i++)
+    {
+        aux = targetPath.nodes[i];
+        targetPath.nodes[i] = targetPath.nodes[ pathLengh - 1 - i ];
+        targetPath.nodes[ pathLengh - 1 - i ] = aux;
+    }
+}
+
+void ConstructPath(Tank &pathRequester, WayPointNode targetNode )
 {
     WayPointNode currentNode;
     currentNode = wayPoints[targetNode.nodeCoordonates.x][targetNode.nodeCoordonates.y];
+
+    Path pathFound;
+    pathFound.lenght = 0;
+
     //fout<<endl<<endl;
     while (1)
     {
@@ -541,10 +610,18 @@ void ConstructPath( WayPointNode targetNode )
             break;
         else
         {
-            harta[currentNode.nodeCoordonates.x][currentNode.nodeCoordonates.y] = 7;
+            //harta[currentNode.nodeCoordonates.x][currentNode.nodeCoordonates.y] = 7;
+            pathFound.nodes[pathFound.lenght].x = currentNode.nodeCoordonates.x;
+            pathFound.nodes[pathFound.lenght].y = currentNode.nodeCoordonates.y;
+            pathFound.lenght++;
             currentNode = wayPoints[currentNode.prevPosition.x][currentNode.prevPosition.y];
         }
     }
+
+    ReversePath(pathFound);
+    pathRequester.currentPath = pathFound;
+    pathRequester.hasPath = true;
+    pathRequester.pathIndex = 0;
 }
 
 int DistanceBetweenNodes(Vector2 node1, Vector2 node2)
@@ -554,7 +631,7 @@ int DistanceBetweenNodes(Vector2 node1, Vector2 node2)
     return dist;
 }
 
-void AstarAlgorithm( Vector2 startPos, Vector2 targetPostition )
+void AstarAlgorithm( Tank &pathReqester , Vector2 startPos, Vector2 targetPostition )
 {
     int i;
     int gCost,hCost,fCost;
@@ -594,7 +671,7 @@ void AstarAlgorithm( Vector2 startPos, Vector2 targetPostition )
 
         if ( EqualNodes(currentNode,targetNode) == true)
         {
-            ConstructPath(targetNode);
+            ConstructPath(pathReqester,targetNode);
             return;
         }
 
@@ -670,11 +747,148 @@ void ClearConsole()
     system("cls");
 }
 
+void LookForTargets( Tank &currentTank )
+{
+    int i,j,x,y;
+    Vector2 currentPointOfInterest;
+    Vector2 optimalPointOfInterest;
+    optimalPointOfInterest.x = -1;
+    optimalPointOfInterest.y = -1;
+    int currentRay;
+    x = currentTank.pozitie.x;
+    y = currentTank.pozitie.y;
+    currentRay = currentTank.detectionRange;
+    for (i = x - currentRay; i <= x + currentRay; i++)
+    {
+        for ( j = y - currentRay; j <= y + currentRay; j++ )
+        {
+            if ( i > 0 && i < mapSize && j > 0 && j < mapSize )
+            {
+                if ( i == x && j == y )
+                    continue;
+                else
+                    {
+                        if ( harta[i][j] > 1 )
+                        {
+                            currentPointOfInterest.x = i;
+                            currentPointOfInterest.y = j;
+                            if ( optimalPointOfInterest.x == -1 && optimalPointOfInterest.y == -1 || harta[ optimalPointOfInterest.x ][ optimalPointOfInterest.y ] < harta[i][j] )
+                            {
+                                optimalPointOfInterest = currentPointOfInterest;
+                            }
+                        }
+                    }
+            }
+        }
+    }
+
+    currentTank.pointOfInterest = optimalPointOfInterest;
+    if (optimalPointOfInterest.x != -1 && optimalPointOfInterest.y != -1)
+    {
+        currentTank.hasTarget = true;
+    }
+    else
+    {
+        currentTank.hasTarget = false;
+    }
+}
+
+void SetRotation( Tank &currentTank ,Vector2 nextPos)
+{
+    Vector2 currentPos = currentTank.pozitie;
+    if ( currentPos.x + -1 == nextPos.x && currentPos.y + 0 == nextPos.y )
+    {
+        currentTank.rotatie.x = -1;
+        currentTank.rotatie.y = 0;
+    }
+
+    if ( currentPos.x + 0 == nextPos.x && currentPos.y + 1 == nextPos.y )
+    {
+        currentTank.rotatie.x = 0;
+        currentTank.rotatie.y = 1;
+    }
+
+    if ( currentPos.x + 1 == nextPos.x && currentPos.y + 0 == nextPos.y )
+    {
+        currentTank.rotatie.x = 1;
+        currentTank.rotatie.y = 0;
+    }
+
+    if ( currentPos.x + 0 == nextPos.x && currentPos.y + -1 == nextPos.y )
+    {
+        currentTank.rotatie.x = 0;
+        currentTank.rotatie.y = -1;
+    }
+}
+
+void MoveOneStep( Tank &currentTank )
+{
+    if (frames % currentTank.moveInterval == 0)
+    {
+
+        Vector2 prevPos = currentTank.pozitie;
+        harta[prevPos.x][prevPos.y] = 0;
+        Vector2 nextPos = currentTank.currentPath.nodes[currentTank.pathIndex];
+        Vector2 currentPos = currentTank.pozitie;
+
+        SetRotation(currentTank,nextPos);
+
+        currentTank.pozitie = currentTank.currentPath.nodes[currentTank.pathIndex];
+        harta[ currentTank.pozitie.x ][ currentTank.pozitie.y ] = tankCode;
+        currentTank.pathIndex++;
+        if ( currentTank.pathIndex >= currentTank.currentPath.lenght )
+        {
+            currentTank.hasPath = false;
+        }
+    }
+}
+
+void Shoot()
+{
+    //cout<<"pew pew"<<endl;
+}
+
+void TankAI( Tank &currentTank )
+{
+    if ( currentTank.hasTarget )
+    {
+        if ( DistanceBetweenNodes( currentTank.pozitie, currentTank.pointOfInterest ) <= currentTank.shootingRange && harta[ currentTank.pointOfInterest.x ][ currentTank.pointOfInterest.y ] == tankCode )
+        {
+            Shoot();
+        }
+        else
+        {
+            AstarAlgorithm( currentTank, currentTank.pozitie, currentTank.pointOfInterest );
+            MoveOneStep( currentTank );
+        }
+    }
+    else
+    {
+        if (!currentTank.hasTarget)
+        {
+            Vector2 randPos;
+            randPos.x = rand() % mapSize;
+            randPos.y = rand() % mapSize;
+            AstarAlgorithm( currentTank, currentTank.pozitie, randPos );
+        }
+        MoveOneStep(currentTank);
+    }
+}
+
+void ProccesAI()
+{
+    int i;
+    for (i = 0; i < nrOfAgents; i++)
+    {
+        LookForTargets( Agents[i] );
+        TankAI ( Agents[i] );
+    }
+}
+
 void Update()
 {
-    int frames = 0;
     double threshold = 1 / (double) numberOfFrames;
-    double currentTimer,prevTimer,deltaTime,timeCounter = 0,framesCounter = 0;
+    double currentTimer,prevTimer,deltaTime,timeCounter = 0,framesCounter = 0,refreshCounter = 0;
     currentTimer = (double) clock() / (double) CLOCKS_PER_SEC;
     prevTimer = (double)currentTimer;
     while (gameRunning)
@@ -684,13 +898,18 @@ void Update()
         prevTimer = (double) currentTimer;
         timeCounter += (double) deltaTime;
         framesCounter += (double) deltaTime;
+        refreshCounter += (double) deltaTime;
         if (timeCounter >=  threshold )
         {
-            //if (timeCounter >= threshold * 10)
-            //{
-               // ClearConsole();
-               // DrawMap();
-            //}
+            /*if (refreshCounter >= threshold * (double)24)
+            {
+                ClearConsole();
+                DrawMap();
+                refreshCounter = 0;
+            }*/
+            ClearConsole();
+            ProccesAI();
+            DrawMap();
             frames++;
             timeCounter = 0;
         }
@@ -720,11 +939,11 @@ int main()
     testPos2.x = rand() % mapSize - 1 + 1;
     testPos2.y = rand() % mapSize - 1 + 1;
     //ShowWalkable();
-    AstarAlgorithm(testPos1,testPos2);
-    DrawMap();
-    fout<<endl;
-    fout<<"target pos x: "<<testPos2.x<<"   target pos y: "<<testPos2.y;
-    fout<<endl<<(double) ( (1 / (double) numberOfFrames)  )<<endl;
+    //AstarAlgorithm(testPos1,testPos2);
+   // DrawMap();
+   // fout<<endl;
+   // fout<<"target pos x: "<<testPos2.x<<"   target pos y: "<<testPos2.y;
+    //fout<<endl<<(double) ( (1 / (double) numberOfFrames)  )<<endl;
     Update();
 
     return 0;
