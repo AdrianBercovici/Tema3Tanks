@@ -24,7 +24,7 @@ ofstream fout("test.out");
 #define tankHealthPoints 3;
 
 
-int mapSize,harta[maxMapSize][maxMapSize],nrOfAgents;
+int mapSize,harta[maxMapSize][maxMapSize],tanksPerUnitCount[maxMapSize][maxMapSize],nrOfAgents;
 int frames = 0;
 int dx[] = {-1,-1,-1,0,1,1,1,0},dy[] = {-1,0,1,1,1,0,-1,-1};
 bool playerPlaying;
@@ -382,6 +382,8 @@ void InitializeAgents( Tank &currentTank )
     {
         currentTank.rotatie.y = -1;
     }
+
+    tanksPerUnitCount[ currentTank.pozitie.x ][ currentTank.pozitie.y ] = 1;
 
 }
 
@@ -747,6 +749,19 @@ void ClearConsole()
     system("cls");
 }
 
+bool EqualButCloser(Vector2 currentPosition, Vector2 optimalPoint,int i, int j )
+{
+    if ( harta[optimalPoint.x][optimalPoint.y] == harta[i][j] )
+    {
+        Vector2 auxV2;
+        auxV2.x = i;
+        auxV2.y = j;
+        if ( DistanceBetweenNodes(currentPosition,optimalPoint) < DistanceBetweenNodes(currentPosition,auxV2) )
+            return true;
+    }
+    return false;
+}
+
 void LookForTargets( Tank &currentTank )
 {
     int i,j,x,y;
@@ -772,7 +787,7 @@ void LookForTargets( Tank &currentTank )
                         {
                             currentPointOfInterest.x = i;
                             currentPointOfInterest.y = j;
-                            if ( optimalPointOfInterest.x == -1 && optimalPointOfInterest.y == -1 || harta[ optimalPointOfInterest.x ][ optimalPointOfInterest.y ] < harta[i][j] )
+                            if ( optimalPointOfInterest.x == -1 && optimalPointOfInterest.y == -1 || harta[ optimalPointOfInterest.x ][ optimalPointOfInterest.y ] < harta[i][j] || EqualButCloser( currentTank.pozitie, optimalPointOfInterest, i, j) == true )
                             {
                                 optimalPointOfInterest = currentPointOfInterest;
                             }
@@ -823,13 +838,19 @@ void SetRotation( Tank &currentTank ,Vector2 nextPos)
 
 void MoveOneStep( Tank &currentTank )
 {
-    if (frames % currentTank.moveInterval == 0)
+    Vector2 nextPos = currentTank.currentPath.nodes[currentTank.pathIndex];
+    if (frames % currentTank.moveInterval == 0 && harta[nextPos.x][nextPos.y] != tankCode)
     {
 
         Vector2 prevPos = currentTank.pozitie;
-        harta[prevPos.x][prevPos.y] = 0;
-        Vector2 nextPos = currentTank.currentPath.nodes[currentTank.pathIndex];
+        tanksPerUnitCount[ prevPos.x ][ prevPos.y ]--;
+        if ( tanksPerUnitCount[ prevPos.x ][ prevPos.y ] == 0 )
+        {
+            harta[prevPos.x][prevPos.y] = 0;
+        }
+        nextPos = currentTank.currentPath.nodes[currentTank.pathIndex];
         Vector2 currentPos = currentTank.pozitie;
+        tanksPerUnitCount[nextPos.x][nextPos.y]++;
 
         SetRotation(currentTank,nextPos);
 
@@ -848,13 +869,69 @@ void Shoot()
     //cout<<"pew pew"<<endl;
 }
 
+bool CanShoot(Vector2 poz1, Vector2 poz2)
+{
+    int i,mine,maxe;
+    if ( poz1.x == poz2.x )
+    {
+        if (poz1.y > poz2.y)
+        {
+            maxe = poz1.y;
+            mine = poz2.y;
+        }
+        else
+        {
+            maxe = poz2.y;
+            mine = poz1.y;
+        }
+
+        for (i = mine + 1; i < maxe; i++ )
+        {
+            if (harta[poz1.x][i] == tankCode)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    if ( poz1.y == poz2.y )
+    {
+        if (poz1.x > poz2.x)
+        {
+            maxe = poz1.x;
+            mine = poz2.x;
+        }
+        else
+        {
+            maxe = poz2.x;
+            mine = poz1.x;
+        }
+
+        for (i = mine + 1; i < maxe; i++ )
+        {
+            if (harta[i][poz1.y] == tankCode)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 void TankAI( Tank &currentTank )
 {
     if ( currentTank.hasTarget )
     {
         if ( DistanceBetweenNodes( currentTank.pozitie, currentTank.pointOfInterest ) <= currentTank.shootingRange && harta[ currentTank.pointOfInterest.x ][ currentTank.pointOfInterest.y ] == tankCode )
         {
-            Shoot();
+            if ( CanShoot( currentTank.pozitie, currentTank.pointOfInterest ) )
+            {
+                Shoot();
+            }
         }
         else
         {
