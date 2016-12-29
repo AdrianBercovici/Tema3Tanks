@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <cmath>
+#include <conio.h>
 #include <windows.h>
 
 using namespace std;
@@ -35,6 +36,8 @@ struct Vector2
     int x;
     int y;
 };
+
+Vector2 playerMoveDirection;
 
 struct WayPointNode
 {
@@ -955,10 +958,90 @@ void TankAI( Tank &currentTank )
 void ProccesAI()
 {
     int i;
-    for (i = 0; i < nrOfAgents; i++)
+    for (i = 1; i < nrOfAgents; i++)
     {
         LookForTargets( Agents[i] );
         TankAI ( Agents[i] );
+    }
+}
+
+void Input()
+{
+    if(_kbhit()) //If player clicks something
+    {
+        char key;
+        key = _getch(); //Now this click is key
+        switch( key )
+        {
+            case 'd':
+
+            {
+               {
+                    playerMoveDirection.x = 0;
+                    playerMoveDirection.y = 1;
+               }
+                break;
+            }
+
+            case 'w':
+            {
+                {
+                    playerMoveDirection.x = -1;
+                    playerMoveDirection.y = 0;
+                }
+            break;
+            }
+
+            case 'a':
+            {
+                {
+                    playerMoveDirection.x = 0;
+                    playerMoveDirection.y = -1;
+                }
+            break;
+            }
+
+            case 's':
+            {
+                {
+                    playerMoveDirection.x = 1;
+                    playerMoveDirection.y = 0;
+                }
+            break;
+            }
+
+        }
+
+    }
+    else
+    {
+        playerMoveDirection.x = 0;
+        playerMoveDirection.y = 0;
+    }
+}
+
+void MovePlayer(Tank &player)
+{
+    if ( frames % player.moveInterval == 0 )
+    {
+        //fout<<"move player"<<endl;
+        Vector2 nextPoz;
+        nextPoz.x = player.pozitie.x + playerMoveDirection.x;
+        nextPoz.y = player.pozitie.y + playerMoveDirection.y;
+
+        if ( harta[ nextPoz.x ][ nextPoz.y ] != 1 )
+        {
+            tanksPerUnitCount[ player.pozitie.x ][ player.pozitie.y ]--;
+            if ( tanksPerUnitCount[ player.pozitie.x ][ player.pozitie.y ] == 0 )
+            {
+                harta [ player.pozitie.x ][ player.pozitie.y ] = 0;
+            }
+            tanksPerUnitCount[nextPoz.x][nextPoz.y]++;
+            harta[nextPoz.x][nextPoz.y] = tankCode;
+            player.pozitie = nextPoz;
+            //fout<<nextPoz.x<<' '<<nextPoz.y<<endl;
+           // fout<<player.pozitie.x<<' '<<player.pozitie.y<<endl<<endl;
+        }
     }
 }
 
@@ -986,13 +1069,15 @@ void Update()
             }*/
             ClearConsole();
             ProccesAI();
+            Input();
+            MovePlayer(Agents[0]);
             DrawMap();
             frames++;
             timeCounter = 0;
         }
         if ( (double) framesCounter > (double) 1 )
         {
-            cout<<"frames per second: "<<frames<<endl;
+            //fout<<"frames per second: "<<frames<<endl;
             framesCounter = 0;
             frames = 0;
         }
