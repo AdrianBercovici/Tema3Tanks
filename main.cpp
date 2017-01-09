@@ -19,11 +19,14 @@ ofstream fout("test.out");
 #define numberOfFrames 60
 //tankz info
 #define tankCode 2
+#define projectileCode -1
 #define detectionR 5
 #define shootingR 3
 #define tankMoveInterval 30;
 #define tankHealthPoints 3;
-
+#define maxProjectileNr 400
+#define projectileMoveInterval 20
+#define baseAttackSpeed 30
 
 int mapSize,harta[maxMapSize][maxMapSize],tanksPerUnitCount[maxMapSize][maxMapSize],nrOfAgents;
 int frames = 0;
@@ -68,6 +71,18 @@ struct  Path
     Vector2 nodes[ mapSizeMediu * mapSizeMediu ];
 };
 
+struct Proiectil
+{
+    int ownerId;
+    int dmg;
+    Vector2 moveDirection;
+    Vector2 currentPozition;
+};
+
+Proiectil projectileArray[maxProjectileNr];
+
+int activeProjectiles;
+
 struct Tank
 {
     Vector2 pozitie;
@@ -80,6 +95,7 @@ struct Tank
     bool hasTarget;
     bool hasPath;
     int pathIndex;
+    int dmg;
     Path currentPath;
 };
 Tank Agents[4];
@@ -367,25 +383,8 @@ void InitializeAgents( Tank &currentTank )
     currentTank.moveInterval = tankMoveInterval;
     currentTank.hasPath = false;
     currentTank.hasTarget = false;
-    if (currentTank.pozitie.x < mapSize / 2)
-    {
-        currentTank.rotatie.x = 1;
-    }
-    if ( currentTank.pozitie.x >= mapSize / 2 )
-    {
-        currentTank.rotatie.x = -1;
-    }
-
-    if (currentTank.pozitie.y < mapSize / 2)
-    {
-        currentTank.rotatie.y = 1;
-    }
-
-    if (currentTank.pozitie.y >= mapSize / 2)
-    {
-        currentTank.rotatie.y = -1;
-    }
-
+    currentTank.rotatie.x = 0;
+    currentTank.rotatie.y = 1;
     tanksPerUnitCount[ currentTank.pozitie.x ][ currentTank.pozitie.y ] = 1;
 
 }
@@ -494,10 +493,12 @@ void DrawMap()
         {
             if (harta[i][j] == 9)
                 cout<<'*'<<' ';
-            else if (harta[i][j] == 2)
+            else if (harta[i][j] == tankCode)
                 cout<<'T'<<' ';
             else if ( harta[i][j] == 0 )
                 cout<<' '<<' ';
+            else if ( harta[i][j] == projectileCode )
+                cout<<'*'<<' ';
             else
                 cout<<'X'<<' ';
         }
@@ -752,6 +753,82 @@ void ClearConsole()
     system("cls");
 }
 
+void DestroyProjectile(int index)
+{
+    int i;
+    Vector2 pozitie = projectileArray[index].currentPozition;
+    if ( index == activeProjectiles - 1 )
+    {
+      //  activeProjectiles--;
+        harta[pozitie.x][pozitie.y] = 0;
+        return;
+    }
+
+    /*for ( i = index; i < activeProjectiles - 1; i++ )
+    {
+        projectileArray[i] = projectileArray[i + 1];
+    }*/
+    //activeProjectiles--;
+    harta[pozitie.x][pozitie.y] = 0;
+}
+
+bool isOwnerTank(int projectileIndex, Vector2 pozitie)
+{
+    int ownerIndex = projectileArray[projectileIndex].ownerId;
+    if ( Agents[ownerIndex].pozitie.x == pozitie.x && Agents[ownerIndex].pozitie.x == pozitie.y )
+        return true;
+    return false;
+}
+
+int FindTankAtLocation(Vector2 targetLocation)
+{
+    int i;
+    for (i = 0; i < nrOfAgents; i++ )
+    {
+        if ( Agents[i].pozitie.x == targetLocation.x && Agents[i].pozitie.y == targetLocation.y )
+        {
+            return i;
+        }
+    }
+    return 0;
+}
+
+void MoveProjectile(int index)
+{
+    if (frames % projectileMoveInterval == 0)
+    {
+        Vector2 nextPoz;
+        nextPoz.x = projectileArray[index].currentPozition.x + projectileArray[index].moveDirection.x;
+        nextPoz.y = projectileArray[index].currentPozition.y + projectileArray[index].moveDirection.y;
+        if ( harta[nextPoz.x][nextPoz.y] == 1 || ( harta[nextPoz.x][nextPoz.y] == tankCode && isOwnerTank(index,nextPoz) == false ) )
+        {
+            DestroyProjectile(index);
+            if ( harta[nextPoz.x][nextPoz.y] == tankCode )
+            {
+                int targetIndex;
+                targetIndex = FindTankAtLocation(nextPoz);
+                Agents[targetIndex].healthPoints -= projectileArray[index].dmg;
+            }
+        }
+        else
+        {
+            Vector2 currentPozition = projectileArray[index].currentPozition;
+            harta[currentPozition.x][currentPozition.y] = 0;
+            projectileArray[index].currentPozition = nextPoz;
+            harta[nextPoz.x][nextPoz.y] = projectileCode;
+        }
+    }
+}
+
+void ProcesProjectiles()
+{
+    int i;
+    for (i = 0; i < activeProjectiles; i++)
+    {
+        MoveProjectile(i);
+    }
+}
+
 bool EqualButCloser(Vector2 currentPosition, Vector2 optimalPoint,int i, int j )
 {
     if ( harta[optimalPoint.x][optimalPoint.y] == harta[i][j] )
@@ -867,9 +944,17 @@ void MoveOneStep( Tank &currentTank )
     }
 }
 
-void Shoot()
+void Shoot( int tankIndex )
 {
-    //cout<<"pew pew"<<endl;
+    if ( frames % baseAttackSpeed == 0 )
+    {
+        activeProjectiles++;
+        projectileArray[activeProjectiles].moveDirection = Agents[tankIndex].rotatie;
+        projectileArray[activeProjectiles].currentPozition.x = Agents[tankIndex].pozitie.x + Agents[tankIndex].rotatie.x;
+        projectileArray[activeProjectiles].currentPozition.y = Agents[tankIndex].pozitie.y + Agents[tankIndex].rotatie.y;
+        projectileArray[activeProjectiles].dmg = Agents[tankIndex].dmg;
+        projectileArray[activeProjectiles].ownerId = tankIndex;
+    }
 }
 
 bool CanShoot(Vector2 poz1, Vector2 poz2)
@@ -925,7 +1010,7 @@ bool CanShoot(Vector2 poz1, Vector2 poz2)
     return false;
 }
 
-void TankAI( Tank &currentTank )
+void TankAI( Tank &currentTank,int tankIndex )
 {
     if ( currentTank.hasTarget )
     {
@@ -933,7 +1018,9 @@ void TankAI( Tank &currentTank )
         {
             if ( CanShoot( currentTank.pozitie, currentTank.pointOfInterest ) )
             {
-                Shoot();
+                //Shoot( tankIndex );
+                int plz;
+                plz++;
             }
         }
         else
@@ -961,7 +1048,7 @@ void ProccesAI()
     for (i = 1; i < nrOfAgents; i++)
     {
         LookForTargets( Agents[i] );
-        TankAI ( Agents[i] );
+        TankAI ( Agents[i], i );
     }
 }
 
@@ -1028,6 +1115,10 @@ void MovePlayer(Tank &player)
         Vector2 nextPoz;
         nextPoz.x = player.pozitie.x + playerMoveDirection.x;
         nextPoz.y = player.pozitie.y + playerMoveDirection.y;
+        if ( !(playerMoveDirection.x == 0 && playerMoveDirection.y == 0) )
+        {
+            player.rotatie = playerMoveDirection;
+        }
 
         if ( harta[ nextPoz.x ][ nextPoz.y ] != 1 )
         {
@@ -1068,6 +1159,8 @@ void Update()
                 refreshCounter = 0;
             }*/
             ClearConsole();
+            ProcesProjectiles();
+            Shoot(0);
             ProccesAI();
             Input();
             MovePlayer(Agents[0]);
