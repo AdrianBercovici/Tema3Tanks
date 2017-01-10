@@ -23,12 +23,13 @@ ofstream fout("test.out");
 #define powerupCode 3
 #define detectionR 5
 #define shootingR 3
-#define tankMoveInterval 30;
+#define tankMoveInterval 15;
 #define tankHealthPoints 3;
 #define maxProjectileNr 400
 #define projectileMoveInterval 20
 #define baseAttackSpeed 30
 #define spawnFrequency 100
+#define maxPowerupsnr 5
 
 int mapSize,harta[maxMapSize][maxMapSize],tanksPerUnitCount[maxMapSize][maxMapSize],nrOfAgents;
 int frames = 0;
@@ -48,7 +49,7 @@ struct powerUp
     int type;
 };
 
-powerUp powerupArray[10];
+powerUp powerupArray[ maxPowerupsnr ];
 
 int activePowerups;
 
@@ -513,6 +514,10 @@ void DrawMap()
                 cout<<'*'<<' ';
             else if ( harta[i][j] == powerupCode )
                 cout<<'$'<<' ';
+            else if ( harta[i][j] == powerupCode + 1 )
+                cout<<'@'<<' ';
+            else if ( harta[i][j] == powerupCode + 2 )
+                cout<<'#'<<' ';
             else
                 cout<<'X'<<' ';
         }
@@ -1152,12 +1157,66 @@ void MovePlayer(Tank &player)
 
 int pwframes;
 
+void DestroyPowerup( int index )
+{
+    Vector2 destroyedPoz = powerupArray[index].pozitie;
+    harta[destroyedPoz.x][destroyedPoz.y] = 0;
+   /* if ( index == activePowerups - 1 )
+    {
+        activePowerups--;
+        return;
+    }*/
+    int i;
+    for ( i = index; i < activePowerups - 1; i++ )
+    {
+        powerupArray[i] = powerupArray[i + 1];
+    }
+    activePowerups--;
+}
+
+bool EqualVectors( Vector2 vec1, Vector2 vec2 )
+{
+    if ( vec1.x == vec2.x && vec1.y == vec2.y )
+        return true;
+    return false;
+}
+
+void ConsumePowerUp(int index,int type)
+{
+     if(type==3)
+           Agents[index].healthPoints++;
+     else
+        if(type==2)Agents[index].dmg++;
+     else
+     if(type==1){Agents[index].dmg+=2;Agents[index].healthPoints--;}
+
+}
+
+void CheckCollision()
+{
+    int i,j;
+    for (i = 0; i < nrOfAgents; i++ )
+    {
+        for ( j = 0; j < activePowerups; j++ )
+        {
+            if ( EqualVectors( Agents[i].pozitie , powerupArray[j].pozitie ) == true )
+            {
+                //fout<<"AGENT"<<' '<<i<<' '<<Agents[i].pozitie.x<<' '<<Agents[i].pozitie.y<<
+                fout<<"ACTIVE POWERUPS:"<<' '<<activePowerups<<endl;
+                DestroyPowerup( j );
+                harta[Agents[i].pozitie.x][Agents[i].pozitie.y]=tankCode;
+                //ConsumePowerUp();
+            }
+        }
+    }
+}
+
 void PlacePowerups()
 {
     int i;
     for (i = 0; i < activePowerups; i++)
     {
-        harta[ powerupArray[i].pozitie.x ][ powerupArray[i].pozitie.y ] = powerupCode;
+        harta[ powerupArray[i].pozitie.x ][ powerupArray[i].pozitie.y ] = powerupCode+powerupArray[i].type-1;
     }
 }
 
@@ -1167,6 +1226,12 @@ void SpawnPowerups()
     {
         pwframes = 0;
         activePowerups++;
+        //fout<<activePowerups<<endl;
+        if ( activePowerups > maxPowerupsnr - 1 )
+        {
+            DestroyPowerup(0);
+            activePowerups = maxPowerupsnr - 1;
+        }
         int x,y;
         x = rand() % mapSize;
         y = rand() % mapSize;
@@ -1178,7 +1243,7 @@ void SpawnPowerups()
             pwpoz = FindClosestAvailable(x,y,1);
         }
         powerupArray[ activePowerups ].pozitie = pwpoz;
-        powerupArray[ activePowerups ].type = rand()%4 + 1;
+        powerupArray[ activePowerups ].type = rand()%3 + 1;
     }
 }
 
@@ -1205,13 +1270,14 @@ void Update()
                 refreshCounter = 0;
             }*/
             ClearConsole();
-           // ProcesProjectiles();
+            //ProcesProjectiles();
            // Shoot(0);
             ProccesAI();
             Input();
             MovePlayer(Agents[0]);
             SpawnPowerups();
             PlacePowerups();
+            CheckCollision();
             DrawMap();
             frames++;
             pwframes++;
@@ -1249,6 +1315,16 @@ int main()
    // fout<<"target pos x: "<<testPos2.x<<"   target pos y: "<<testPos2.y;
     //fout<<endl<<(double) ( (1 / (double) numberOfFrames)  )<<endl;
     Update();
-
+    /*char pls[50][50]={"000000000000",
+                      "000000000000",
+                      "000000000000",
+                      "000000000000",
+    };
+    bool isGG=false;
+    while(!isGG)
+    {
+        system("cls");
+        for(int i=0;i<4;i++)cout<<pls[i]<<endl;}*/
     return 0;
 }
+
