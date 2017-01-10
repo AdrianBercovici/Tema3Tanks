@@ -20,6 +20,7 @@ ofstream fout("test.out");
 //tankz info
 #define tankCode 2
 #define projectileCode -1
+#define powerupCode 3
 #define detectionR 5
 #define shootingR 3
 #define tankMoveInterval 30;
@@ -27,6 +28,7 @@ ofstream fout("test.out");
 #define maxProjectileNr 400
 #define projectileMoveInterval 20
 #define baseAttackSpeed 30
+#define spawnFrequency 100
 
 int mapSize,harta[maxMapSize][maxMapSize],tanksPerUnitCount[maxMapSize][maxMapSize],nrOfAgents;
 int frames = 0;
@@ -39,6 +41,16 @@ struct Vector2
     int x;
     int y;
 };
+
+struct powerUp
+{
+    Vector2 pozitie;
+    int type;
+};
+
+powerUp powerupArray[10];
+
+int activePowerups;
 
 Vector2 playerMoveDirection;
 
@@ -499,6 +511,8 @@ void DrawMap()
                 cout<<' '<<' ';
             else if ( harta[i][j] == projectileCode )
                 cout<<'*'<<' ';
+            else if ( harta[i][j] == powerupCode )
+                cout<<'$'<<' ';
             else
                 cout<<'X'<<' ';
         }
@@ -1136,6 +1150,38 @@ void MovePlayer(Tank &player)
     }
 }
 
+int pwframes;
+
+void PlacePowerups()
+{
+    int i;
+    for (i = 0; i < activePowerups; i++)
+    {
+        harta[ powerupArray[i].pozitie.x ][ powerupArray[i].pozitie.y ] = powerupCode;
+    }
+}
+
+void SpawnPowerups()
+{
+    if ( pwframes > spawnFrequency )
+    {
+        pwframes = 0;
+        activePowerups++;
+        int x,y;
+        x = rand() % mapSize;
+        y = rand() % mapSize;
+        Vector2 pwpoz;
+        pwpoz.x = x;
+        pwpoz.y = y;
+        if ( harta[ pwpoz.x ][ pwpoz.y ] != 0 )
+        {
+            pwpoz = FindClosestAvailable(x,y,1);
+        }
+        powerupArray[ activePowerups ].pozitie = pwpoz;
+        powerupArray[ activePowerups ].type = rand()%4 + 1;
+    }
+}
+
 void Update()
 {
     double threshold = 1 / (double) numberOfFrames;
@@ -1159,13 +1205,16 @@ void Update()
                 refreshCounter = 0;
             }*/
             ClearConsole();
-            ProcesProjectiles();
-            Shoot(0);
+           // ProcesProjectiles();
+           // Shoot(0);
             ProccesAI();
             Input();
             MovePlayer(Agents[0]);
+            SpawnPowerups();
+            PlacePowerups();
             DrawMap();
             frames++;
+            pwframes++;
             timeCounter = 0;
         }
         if ( (double) framesCounter > (double) 1 )
