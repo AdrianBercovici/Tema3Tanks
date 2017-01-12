@@ -23,13 +23,15 @@ ofstream fout("test.out");
 #define powerupCode 3
 #define detectionR 5
 #define shootingR 3
-#define tankMoveInterval 15;
+#define tankMoveInterval 10;
 #define tankHealthPoints 3;
 #define maxProjectileNr 400
-#define projectileMoveInterval 20
-#define baseAttackSpeed 30
+#define projectileMoveInterval 5
+#define baseAttackSpeed 1
 #define spawnFrequency 100
 #define maxPowerupsnr 5
+#define defaultDmg 1
+#define dangerRange 3
 
 int mapSize,harta[maxMapSize][maxMapSize],tanksPerUnitCount[maxMapSize][maxMapSize],nrOfAgents;
 int frames = 0;
@@ -393,6 +395,7 @@ void InitializeAgents( Tank &currentTank )
     currentTank.detectionRange = detectionR;
     currentTank.shootingRange = shootingR;
     currentTank.healthPoints = tankHealthPoints;
+    currentTank.dmg = defaultDmg;
     currentTank.moveInterval = tankMoveInterval;
     currentTank.hasPath = false;
     currentTank.hasTarget = false;
@@ -511,7 +514,7 @@ void DrawMap()
             else if ( harta[i][j] == 0 )
                 cout<<' '<<' ';
             else if ( harta[i][j] == projectileCode )
-                cout<<'*'<<' ';
+                cout<<'.'<<' ';
             else if ( harta[i][j] == powerupCode )
                 cout<<'$'<<' ';
             else if ( harta[i][j] == powerupCode + 1 )
@@ -776,18 +779,18 @@ void DestroyProjectile(int index)
 {
     int i;
     Vector2 pozitie = projectileArray[index].currentPozition;
-    if ( index == activeProjectiles - 1 )
+    fout<<pozitie.x<<' '<<pozitie.y<<endl;
+    /*if (index == activeProjectiles - 1)
     {
-      //  activeProjectiles--;
+        activeProjectiles--;
         harta[pozitie.x][pozitie.y] = 0;
         return;
-    }
-
-    /*for ( i = index; i < activeProjectiles - 1; i++ )
+    }*/
+    activeProjectiles--;
+    for ( i = index; i < activeProjectiles; i++ )
     {
         projectileArray[i] = projectileArray[i + 1];
-    }*/
-    //activeProjectiles--;
+    }
     harta[pozitie.x][pozitie.y] = 0;
 }
 
@@ -971,6 +974,12 @@ void Shoot( int tankIndex )
         projectileArray[activeProjectiles].moveDirection = Agents[tankIndex].rotatie;
         projectileArray[activeProjectiles].currentPozition.x = Agents[tankIndex].pozitie.x + Agents[tankIndex].rotatie.x;
         projectileArray[activeProjectiles].currentPozition.y = Agents[tankIndex].pozitie.y + Agents[tankIndex].rotatie.y;
+        Vector2 checkPoz = projectileArray[ activeProjectiles ].currentPozition;
+        if (harta[checkPoz.x][checkPoz.y] == 1)
+        {
+            activeProjectiles--;
+            return;
+        }
         projectileArray[activeProjectiles].dmg = Agents[tankIndex].dmg;
         projectileArray[activeProjectiles].ownerId = tankIndex;
     }
@@ -1029,17 +1038,223 @@ bool CanShoot(Vector2 poz1, Vector2 poz2)
     return false;
 }
 
+struct Vector2Bool
+{
+    bool boolValue;
+    Vector2 Vector2value;
+};
+
+bool checkProjectileParent( Vector2 projectilePosition, int tankIndex )
+{
+    int i;
+    for (i = 0; i < activeProjectiles; i++)
+    {
+        if ( projectileArray[i].ownerId == tankIndex )
+            return true;
+    }
+    return false;
+}
+
+Vector2 MultiplyVector2( Vector2 baseVec, int multiplyer )
+{
+    Vector2 aux;
+    aux.x = baseVec.x * multiplyer;
+    aux.y = baseVec.y * multiplyer;
+    return aux;
+}
+
+Vector2Bool CheckNeighbour1 (Vector2 vect,Vector2 initPoz,int tankIndex)
+{
+    Vector2 neighbour1;
+    if ( vect.x == 0 )
+    {
+        neighbour1.x = vect.y;
+        neighbour1.y = 0;
+    }
+    else
+    {
+        neighbour1.x = 0;
+        neighbour1.y = vect.x;
+    }
+
+    neighbour1.x += initPoz.x;
+    neighbour1.x += initPoz.y;
+
+    Vector2Bool availablePos;
+    if ( harta[neighbour1.x][neighbour1.y] == 1 || ( harta[neighbour1.x][neighbour1.y] == projectileCode && checkProjectileParent( neighbour1,tankIndex == false ) )|| harta[neighbour1.x][neighbour1.y] == tankCode )
+    {
+        availablePos.boolValue = false;
+    }
+    else
+    {
+        availablePos.boolValue = true;
+        availablePos.Vector2value = neighbour1;
+    }
+    return availablePos;
+}
+
+Vector2Bool CheckNeighbour2( Vector2 vect,Vector2 initPoz,int tankIndex )
+{
+    Vector2 neighbour1;
+    if ( vect.x == 0 )
+    {
+        neighbour1.x = -vect.y;
+        neighbour1.y = 0;
+    }
+    else
+    {
+        neighbour1.x = 0;
+        neighbour1.y = -vect.x;
+    }
+
+    neighbour1.x += initPoz.x;
+    neighbour1.x += initPoz.y;
+
+    Vector2Bool availablePos;
+    if ( harta[neighbour1.x][neighbour1.y] == 1 || ( harta[neighbour1.x][neighbour1.y] == projectileCode && checkProjectileParent( neighbour1,tankIndex == false ) ) || harta[neighbour1.x][neighbour1.y] == tankCode )
+    {
+        availablePos.boolValue = false;
+    }
+    else
+    {
+        availablePos.boolValue = true;
+        availablePos.Vector2value = neighbour1;
+    }
+    return availablePos;
+}
+
+Vector2Bool CheckOpositeNeighbour( Vector2 vect,Vector2 initPoz ,int tankIndex)
+{
+    Vector2 neighbour1;
+    neighbour1.x = -vect.x;
+    neighbour1.y = -vect.y;
+    neighbour1.x += initPoz.x;
+    neighbour1.x += initPoz.y;
+
+    Vector2Bool availablePos;
+    if ( harta[neighbour1.x][neighbour1.y] == 1 || ( harta[neighbour1.x][neighbour1.y] == projectileCode && checkProjectileParent( neighbour1,tankIndex == false ) )|| harta[neighbour1.x][neighbour1.y] == tankCode )
+    {
+        availablePos.boolValue = false;
+    }
+    else
+    {
+        availablePos.boolValue = true;
+        availablePos.Vector2value = neighbour1;
+    }
+    return availablePos;
+}
+
+
+Vector2Bool inDanger( int tankIndex )
+{
+    int i;
+    Vector2 sus,jos,stanga,dreapta,aux;
+    sus.x = -1; sus.y = 0;
+    dreapta.x = 0; dreapta.y = 1;
+    jos.x = 1; sus.y = 0;
+    stanga.x = 0; stanga.y = -1;
+    Vector2Bool availablePosition;
+
+    for (i = 1; i <= dangerRange; i++ )
+    {
+        aux = MultiplyVector2( stanga, i );
+        if ( harta[aux.x][aux.y] == projectileCode && checkProjectileParent( aux, tankIndex ) )
+        {
+            availablePosition = CheckNeighbour1( stanga, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition = CheckNeighbour2( stanga, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition = CheckOpositeNeighbour( stanga, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition.boolValue = false;
+            return availablePosition;
+        }//check vecin la stanga pt proiectil
+
+        aux = MultiplyVector2( sus, i );
+        if ( harta[aux.x][aux.y] == projectileCode && checkProjectileParent( aux, tankIndex ) )
+        {
+            availablePosition = CheckNeighbour1( sus, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition = CheckNeighbour2( sus, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition = CheckOpositeNeighbour( sus, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition.boolValue = false;
+            return availablePosition;
+        }//check vecin la sus pt proiectil
+
+        aux = MultiplyVector2( dreapta, i );
+        if ( harta[aux.x][aux.y] == projectileCode && checkProjectileParent( aux, tankIndex ) )
+        {
+            availablePosition = CheckNeighbour1( dreapta, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition = CheckNeighbour2( dreapta, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition = CheckOpositeNeighbour( dreapta, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition.boolValue = false;
+            return availablePosition;
+        }//check vecin la dreapta pt proiectil
+
+        aux = MultiplyVector2( jos, i );
+        if ( harta[aux.x][aux.y] == projectileCode && checkProjectileParent( aux, tankIndex ) )
+        {
+            availablePosition = CheckNeighbour1( jos, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition = CheckNeighbour2( jos, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition = CheckOpositeNeighbour( jos, Agents[tankIndex].pozitie,tankIndex );
+            if  (availablePosition.boolValue == true)
+                return availablePosition;
+
+            availablePosition.boolValue = false;
+            return availablePosition;
+        }//check vecin la jos pt proiectil
+    }
+    availablePosition.boolValue = false;
+    return availablePosition;
+}
+
 void TankAI( Tank &currentTank,int tankIndex )
 {
-    if ( currentTank.hasTarget )
+    Vector2Bool availablePos;
+    availablePos = inDanger( tankIndex );
+    if ( availablePos.boolValue == true )
+    {
+        fout<<"tank "<<tankIndex<<" inDanger";
+        AstarAlgorithm( currentTank, currentTank.pozitie, availablePos.Vector2value );
+    }
+    else if ( currentTank.hasTarget )
     {
         if ( DistanceBetweenNodes( currentTank.pozitie, currentTank.pointOfInterest ) <= currentTank.shootingRange && harta[ currentTank.pointOfInterest.x ][ currentTank.pointOfInterest.y ] == tankCode )
         {
             if ( CanShoot( currentTank.pozitie, currentTank.pointOfInterest ) )
             {
                 //Shoot( tankIndex );
-                int plz;
-                plz++;
+                int glz;
+                glz++;
             }
         }
         else
@@ -1167,7 +1382,7 @@ void DestroyPowerup( int index )
         return;
     }*/
     int i;
-    for ( i = index; i < activePowerups - 1; i++ )
+    for ( i = index; i < activePowerups; i++ )
     {
         powerupArray[i] = powerupArray[i + 1];
     }
@@ -1202,7 +1417,7 @@ void CheckCollision()
             if ( EqualVectors( Agents[i].pozitie , powerupArray[j].pozitie ) == true )
             {
                 //fout<<"AGENT"<<' '<<i<<' '<<Agents[i].pozitie.x<<' '<<Agents[i].pozitie.y<<
-                fout<<"ACTIVE POWERUPS:"<<' '<<activePowerups<<endl;
+                //fout<<"ACTIVE POWERUPS:"<<' '<<activePowerups<<endl;
                 DestroyPowerup( j );
                 harta[Agents[i].pozitie.x][Agents[i].pozitie.y]=tankCode;
                 //ConsumePowerUp();
@@ -1270,8 +1485,8 @@ void Update()
                 refreshCounter = 0;
             }*/
             ClearConsole();
-            //ProcesProjectiles();
-           // Shoot(0);
+            ProcesProjectiles();
+            Shoot(0);
             ProccesAI();
             Input();
             MovePlayer(Agents[0]);
@@ -1327,4 +1542,3 @@ int main()
         for(int i=0;i<4;i++)cout<<pls[i]<<endl;}*/
     return 0;
 }
-
