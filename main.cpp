@@ -6,7 +6,7 @@
 #include <cmath>
 #include <conio.h>
 #include <windows.h>
-#include <cstring>
+
 using namespace std;
 
 ifstream fin("test.in");
@@ -24,12 +24,12 @@ ofstream fout("test.out");
 #define detectionR 5
 #define shootingR 3
 #define tankMoveInterval 10;
-#define tankHealthPoints 3;
+#define tankHealthPoints 5;
 #define maxProjectileNr 400
 #define projectileMoveInterval 5
-#define baseAttackSpeed 15
-#define spawnFrequency 100
-#define maxPowerupsnr 5
+#define baseAttackSpeed 45
+#define spawnFrequency 50
+#define maxPowerupsnr 8
 #define defaultDmg 1
 #define dangerRange 3
 
@@ -38,7 +38,7 @@ int frames = 0,firstAi;
 int dx[] = {-1,-1,-1,0,1,1,1,0},dy[] = {-1,0,1,1,1,0,-1,-1};
 bool playerPlaying;
 bool gameRunning;
-char a[50][1][100];
+
 struct Vector2
 {
     int x;
@@ -247,7 +247,7 @@ void Awake()
 {
     char PlayerImput,validInput = 0;
     cout<<"Introduceti dimensiunea hartii: "<<endl;
-    cout<<"Press 'S' for small      Press 'M' for medium        Press 'L' for large"<<endl;
+    cout<<"Press 'S' for small       Press 'L' for large"<<endl;
     while (validInput == 0)
     {
         cin>>PlayerImput;
@@ -256,14 +256,9 @@ void Awake()
             mapSize = mapSizeSmall;
             validInput = 1;
         }
-        else  if (PlayerImput == 'M' || PlayerImput == 'm')
-        {
-            mapSize = mapSizeMediu;
-            validInput = 1;
-        }
         else  if (PlayerImput == 'L' || PlayerImput == 'l')
         {
-            mapSize = maxMapSize;
+            mapSize = mapSizeMediu;
             validInput = 1;
         }
         else
@@ -502,10 +497,14 @@ void PlaceAgents()
     }
 }
 
+char a[50][1][100];
+
 void DrawMap()
 {
-     for(int i=0;i<=mapSize;i++)a[i][0][0]='\0';
-        int i,j;
+    int i,j;
+    for(int i=0;i<=mapSize;i++)
+        a[i][0][0]='\0';
+
     for (i = 0; i <= mapSize; i++)//a[i][0][0]='\0';
     {
         for (j = 0; j <= mapSize; j++)
@@ -518,36 +517,36 @@ void DrawMap()
                 //cout<<'T'<<' ';
                 strcat(a[i][0],"T ");
             else if ( harta[i][j] == 0 || harta[i][j]==7)
-               // cout<<' '<<' ';
-                strcat(a[i][0],"  ");
-            else if ( harta[i][j] == projectileCode )
-                //cout<<'*'<<' ';
-                strcat(a[i][0],"* ");
-            else if ( harta[i][j] == powerupCode )
-                //cout<<'$'<<' ';
-                strcat(a[i][0],"$ ");
-            else if ( harta[i][j] == powerupCode + 1 )
-                //cout<<'@'<<' ';
-                strcat(a[i][0],"@ ");
-            else if ( harta[i][j] == powerupCode + 2 )
-                //cout<<'#'<<' ';
-                strcat(a[i][0],"# ");
-            else
-                //cout<<'X'<<' ';
-                strcat(a[i][0],"X ");
+                // cout<<' '<<' ';
+                 strcat(a[i][0],"  ");
+             else if ( harta[i][j] == projectileCode )
+                 //cout<<'*'<<' ';
+                 strcat(a[i][0],"* ");
+             else if ( harta[i][j] == powerupCode )
+                 //cout<<'$'<<' ';
+                 strcat(a[i][0],"$ ");
+             else if ( harta[i][j] == powerupCode + 1 )
+                 //cout<<'@'<<' ';
+                 strcat(a[i][0],"@ ");
+             else if ( harta[i][j] == powerupCode + 2 )
+                 //cout<<'#'<<' ';
+                 strcat(a[i][0],"# ");
+             else
+                 //cout<<'X'<<' ';
+                 strcat(a[i][0],"X ");
         }
-        //cout<<endl;
-    }
-        for(int i=0; i<=mapSize;i++)cout<<a[i][0]<<"\n";
-    for (i = 0; i < nrOfAgents; i++)
-    {
-        cout<<"Tank "<<i<<": ";
-        for (j = 0; j < Agents[i].healthPoints; j++)
-        {
-            cout<<"* ";
-        }
-        cout<<endl;
-    }
+         //cout<<endl;
+     }
+         for(int i=0; i<=mapSize;i++)cout<<a[i][0]<<"\n";
+     for (i = 0; i < nrOfAgents; i++)
+     {
+         cout<<"Tank "<<i<<": ";
+         for (j = 0; j < Agents[i].healthPoints; j++)
+         {
+             cout<<"* ";
+         }
+         cout<<endl;
+     }
 }
 
 void Bordare()
@@ -1624,15 +1623,5 @@ int main()
    // fout<<"target pos x: "<<testPos2.x<<"   target pos y: "<<testPos2.y;
     //fout<<endl<<(double) ( (1 / (double) numberOfFrames)  )<<endl;
     Update();
-    /*char pls[50][50]={"000000000000",
-                      "000000000000",
-                      "000000000000",
-                      "000000000000",
-    };
-    bool isGG=false;
-    while(!isGG)
-    {
-        system("cls");
-        for(int i=0;i<4;i++)cout<<pls[i]<<endl;}*/
     return 0;
 }
