@@ -6,7 +6,7 @@
 #include <cmath>
 #include <conio.h>
 #include <windows.h>
-
+#include <cstring>
 using namespace std;
 
 ifstream fin("test.in");
@@ -38,7 +38,7 @@ int frames = 0,firstAi;
 int dx[] = {-1,-1,-1,0,1,1,1,0},dy[] = {-1,0,1,1,1,0,-1,-1};
 bool playerPlaying;
 bool gameRunning;
-
+char a[50][1][100];
 struct Vector2
 {
     int x;
@@ -504,30 +504,41 @@ void PlaceAgents()
 
 void DrawMap()
 {
-    int i,j;
-    for (i = 0; i <= mapSize; i++)
+     for(int i=0;i<=mapSize;i++)a[i][0][0]='\0';
+        int i,j;
+    for (i = 0; i <= mapSize; i++)//a[i][0][0]='\0';
     {
         for (j = 0; j <= mapSize; j++)
         {
             if (harta[i][j] == 9)
-                cout<<'*'<<' ';
+                //cout<<'*'<<' ';
+                strcat(a[i][0],"* ");
+
             else if (harta[i][j] == tankCode)
-                cout<<'T'<<' ';
-            else if ( harta[i][j] == 0 )
-                cout<<' '<<' ';
+                //cout<<'T'<<' ';
+                strcat(a[i][0],"T ");
+            else if ( harta[i][j] == 0 || harta[i][j]==7)
+               // cout<<' '<<' ';
+                strcat(a[i][0],"  ");
             else if ( harta[i][j] == projectileCode )
-                cout<<'.'<<' ';
+                //cout<<'*'<<' ';
+                strcat(a[i][0],"* ");
             else if ( harta[i][j] == powerupCode )
-                cout<<'$'<<' ';
+                //cout<<'$'<<' ';
+                strcat(a[i][0],"$ ");
             else if ( harta[i][j] == powerupCode + 1 )
-                cout<<'@'<<' ';
+                //cout<<'@'<<' ';
+                strcat(a[i][0],"@ ");
             else if ( harta[i][j] == powerupCode + 2 )
-                cout<<'#'<<' ';
+                //cout<<'#'<<' ';
+                strcat(a[i][0],"# ");
             else
-                cout<<'X'<<' ';
+                //cout<<'X'<<' ';
+                strcat(a[i][0],"X ");
         }
-        cout<<endl;
+        //cout<<endl;
     }
+        for(int i=0; i<=mapSize;i++)cout<<a[i][0]<<"\n";
     for (i = 0; i < nrOfAgents; i++)
     {
         cout<<"Tank "<<i<<": ";
