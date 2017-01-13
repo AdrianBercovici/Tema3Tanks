@@ -34,7 +34,7 @@ ofstream fout("test.out");
 #define dangerRange 3
 
 int mapSize,harta[maxMapSize][maxMapSize],tanksPerUnitCount[maxMapSize][maxMapSize],nrOfAgents;
-int frames = 0;
+int frames = 0,firstAi;
 int dx[] = {-1,-1,-1,0,1,1,1,0},dy[] = {-1,0,1,1,1,0,-1,-1};
 bool playerPlaying;
 bool gameRunning;
@@ -296,11 +296,13 @@ void Awake()
         if (PlayerImput == 'Y' || PlayerImput == 'y')
         {
             playerPlaying = true;
+            firstAi = 1;
             validInput = 1;
         }
         else  if (PlayerImput == 'N' || PlayerImput == 'n')
         {
             playerPlaying = false;
+            firstAi = 0;
             validInput = 1;
         }
         else
@@ -523,6 +525,15 @@ void DrawMap()
                 cout<<'#'<<' ';
             else
                 cout<<'X'<<' ';
+        }
+        cout<<endl;
+    }
+    for (i = 0; i < nrOfAgents; i++)
+    {
+        cout<<"Tank "<<i<<": ";
+        for (j = 0; j < Agents[i].healthPoints; j++)
+        {
+            cout<<"* ";
         }
         cout<<endl;
     }
@@ -779,7 +790,7 @@ void DestroyProjectile(int index)
 {
     int i;
     Vector2 pozitie = projectileArray[index].currentPozition;
-    fout<<pozitie.x<<' '<<pozitie.y<<endl;
+    //fout<<pozitie.x<<' '<<pozitie.y<<endl;
     /*if (index == activeProjectiles - 1)
     {
         activeProjectiles--;
@@ -1237,24 +1248,45 @@ Vector2Bool inDanger( int tankIndex )
     return availablePosition;
 }
 
+void DestroyTank(int tankIndex)
+{
+    nrOfAgents--;
+    int i;
+    tanksPerUnitCount[ Agents[tankIndex].pozitie.x ][ Agents[tankIndex].pozitie.y ]--;
+    if ( tanksPerUnitCount[ Agents[tankIndex].pozitie.x ][ Agents[tankIndex].pozitie.y ] == 0 )
+    {
+        harta[ Agents[tankIndex].pozitie.x ][ Agents[tankIndex].pozitie.y ] = 0;
+    }
+    for (i = tankIndex; i < nrOfAgents; i++)
+    {
+        Agents[i] = Agents[i+1];
+    }
+}
+
 void TankAI( Tank &currentTank,int tankIndex )
 {
-    Vector2Bool availablePos;
+    if ( currentTank.healthPoints <= 0 )
+    {
+        DestroyTank(tankIndex);
+    }
+
+    /*Vector2Bool availablePos;
     availablePos = inDanger( tankIndex );
     if ( availablePos.boolValue == true )
     {
         fout<<"tank "<<tankIndex<<" inDanger";
         AstarAlgorithm( currentTank, currentTank.pozitie, availablePos.Vector2value );
     }
-    else if ( currentTank.hasTarget )
+    else*/
+    if ( currentTank.hasTarget )
     {
         if ( DistanceBetweenNodes( currentTank.pozitie, currentTank.pointOfInterest ) <= currentTank.shootingRange && harta[ currentTank.pointOfInterest.x ][ currentTank.pointOfInterest.y ] == tankCode )
         {
             if ( CanShoot( currentTank.pozitie, currentTank.pointOfInterest ) )
             {
-                //Shoot( tankIndex );
-                int glz;
-                glz++;
+                Shoot( tankIndex );
+                //int glz;
+                //glz++;
             }
         }
         else
@@ -1279,7 +1311,7 @@ void TankAI( Tank &currentTank,int tankIndex )
 void ProccesAI()
 {
     int i;
-    for (i = 1; i < nrOfAgents; i++)
+    for (i = firstAi; i < nrOfAgents; i++)
     {
         LookForTargets( Agents[i] );
         TankAI ( Agents[i], i );
@@ -1486,7 +1518,7 @@ void Update()
             }*/
             ClearConsole();
             ProcesProjectiles();
-            Shoot(0);
+            //Shoot(0);
             ProccesAI();
             Input();
             MovePlayer(Agents[0]);
@@ -1501,6 +1533,7 @@ void Update()
         if ( (double) framesCounter > (double) 1 )
         {
             //fout<<"frames per second: "<<frames<<endl;
+            fout<<nrOfAgents<<endl;
             framesCounter = 0;
             frames = 0;
         }
