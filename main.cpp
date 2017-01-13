@@ -6,7 +6,7 @@
 #include <cmath>
 #include <conio.h>
 #include <windows.h>
-#include <cstring>
+
 using namespace std;
 
 ifstream fin("test.in");
@@ -23,11 +23,11 @@ ofstream fout("test.out");
 #define powerupCode 3
 #define detectionR 5
 #define shootingR 3
-#define tankMoveInterval 2;
+#define tankMoveInterval 10;
 #define tankHealthPoints 3;
 #define maxProjectileNr 400
 #define projectileMoveInterval 5
-#define baseAttackSpeed 1
+#define baseAttackSpeed 15
 #define spawnFrequency 100
 #define maxPowerupsnr 5
 #define defaultDmg 1
@@ -38,7 +38,7 @@ int frames = 0,firstAi;
 int dx[] = {-1,-1,-1,0,1,1,1,0},dy[] = {-1,0,1,1,1,0,-1,-1};
 bool playerPlaying;
 bool gameRunning;
-char a[50][1][300];
+
 struct Vector2
 {
     int x;
@@ -504,7 +504,7 @@ void PlaceAgents()
 
 void DrawMap()
 {
-  /*  int i,j;
+    int i,j;
     for (i = 0; i <= mapSize; i++)
     {
         for (j = 0; j <= mapSize; j++)
@@ -527,42 +527,7 @@ void DrawMap()
                 cout<<'X'<<' ';
         }
         cout<<endl;
-    }*/
-    for(int i=0;i<=mapSize;i++)a[i][0][0]='\0';
-        int i,j;
-    for (i = 0; i <= mapSize; i++)//a[i][0][0]='\0';
-    {
-        for (j = 0; j <= mapSize; j++)
-        {
-            if (harta[i][j] == 9)
-                //cout<<'*'<<' ';
-                strcat(a[i][0],"* ");
-
-            else if (harta[i][j] == tankCode)
-                //cout<<'T'<<' ';
-                strcat(a[i][0],"T ");
-            else if ( harta[i][j] == 0 || harta[i][j]==7)
-               // cout<<' '<<' ';
-                strcat(a[i][0],"  ");
-            else if ( harta[i][j] == projectileCode )
-                //cout<<'*'<<' ';
-                strcat(a[i][0],"* ");
-            else if ( harta[i][j] == powerupCode )
-                //cout<<'$'<<' ';
-                strcat(a[i][0],"$ ");
-            else if ( harta[i][j] == powerupCode + 1 )
-                //cout<<'@'<<' ';
-                strcat(a[i][0],"@ ");
-            else if ( harta[i][j] == powerupCode + 2 )
-                //cout<<'#'<<' ';
-                strcat(a[i][0],"# ");
-            else
-                //cout<<'X'<<' ';
-                strcat(a[i][0],"X ");
-        }
-        //cout<<endl;
     }
-        for(int i=0; i<=mapSize;i++)cout<<a[i][0]<<"\n";
     for (i = 0; i < nrOfAgents; i++)
     {
         cout<<"Tank "<<i<<": ";
@@ -832,12 +797,12 @@ void DestroyProjectile(int index)
         harta[pozitie.x][pozitie.y] = 0;
         return;
     }*/
-    activeProjectiles--;
     for ( i = index; i < activeProjectiles; i++ )
     {
         projectileArray[i] = projectileArray[i + 1];
     }
     harta[pozitie.x][pozitie.y] = 0;
+    activeProjectiles--;
 }
 
 bool isOwnerTank(int projectileIndex, Vector2 pozitie)
@@ -1017,6 +982,7 @@ void Shoot( int tankIndex )
     if ( frames % baseAttackSpeed == 0 )
     {
         activeProjectiles++;
+        //fout<<"pewpew"<<' '<<tankIndex<<endl;
         projectileArray[activeProjectiles].moveDirection = Agents[tankIndex].rotatie;
         projectileArray[activeProjectiles].currentPozition.x = Agents[tankIndex].pozitie.x + Agents[tankIndex].rotatie.x;
         projectileArray[activeProjectiles].currentPozition.y = Agents[tankIndex].pozitie.y + Agents[tankIndex].rotatie.y;
@@ -1028,6 +994,15 @@ void Shoot( int tankIndex )
         }
         projectileArray[activeProjectiles].dmg = Agents[tankIndex].dmg;
         projectileArray[activeProjectiles].ownerId = tankIndex;
+        if ( harta[checkPoz.x][checkPoz.y] == tankCode )
+        {
+            int index = FindTankAtLocation(checkPoz);
+            if ( index != tankIndex )
+            {
+                Agents[index].healthPoints -= projectileArray[activeProjectiles].dmg;
+                activeProjectiles--;
+            }
+        }
     }
 }
 
@@ -1285,7 +1260,6 @@ Vector2Bool inDanger( int tankIndex )
 
 void DestroyTank(int tankIndex)
 {
-    nrOfAgents--;
     int i;
     tanksPerUnitCount[ Agents[tankIndex].pozitie.x ][ Agents[tankIndex].pozitie.y ]--;
     if ( tanksPerUnitCount[ Agents[tankIndex].pozitie.x ][ Agents[tankIndex].pozitie.y ] == 0 )
@@ -1296,6 +1270,7 @@ void DestroyTank(int tankIndex)
     {
         Agents[i] = Agents[i+1];
     }
+    nrOfAgents--;
 }
 
 void TankAI( Tank &currentTank,int tankIndex )
@@ -1317,12 +1292,14 @@ void TankAI( Tank &currentTank,int tankIndex )
     {
         if ( DistanceBetweenNodes( currentTank.pozitie, currentTank.pointOfInterest ) <= currentTank.shootingRange && harta[ currentTank.pointOfInterest.x ][ currentTank.pointOfInterest.y ] == tankCode )
         {
-            if ( CanShoot( currentTank.pozitie, currentTank.pointOfInterest ) )
+            SetRotation( currentTank, currentTank.pointOfInterest );
+            Shoot( tankIndex );
+            /*if ( CanShoot( currentTank.pozitie, currentTank.pointOfInterest ) )
             {
                 Shoot( tankIndex );
                 //int glz;
                 //glz++;
-            }
+            }*/
         }
         else
         {
@@ -1394,6 +1371,15 @@ void Input()
                 {
                     playerMoveDirection.x = 1;
                     playerMoveDirection.y = 0;
+                }
+            break;
+            }
+            case ' ':
+            {
+                {
+                    playerMoveDirection.x = 0;
+                    playerMoveDirection.y = 0;
+                    Shoot(0);
                 }
             break;
             }
@@ -1487,7 +1473,7 @@ void CheckCollision()
                 //fout<<"ACTIVE POWERUPS:"<<' '<<activePowerups<<endl;
                 DestroyPowerup( j );
                 harta[Agents[i].pozitie.x][Agents[i].pozitie.y]=tankCode;
-                //ConsumePowerUp();
+                ConsumePowerUp(i,powerupArray[j].type);
             }
         }
     }
@@ -1529,6 +1515,33 @@ void SpawnPowerups()
     }
 }
 
+void GameFinale()
+{
+    if (nrOfAgents == 1)
+    {
+        gameRunning = false;
+        ClearConsole();
+        if ( playerPlaying == true && Agents[0].healthPoints > 0)
+        {
+            cout<<"YOU HAVE WON!"<<endl;
+            return;
+        }
+        if ( playerPlaying )
+                cout<<"YOU ARE A FAILURE"<<endl;
+            else
+                cout<<"GAME OVER"<<endl;
+        return;
+    }
+
+    if ( playerPlaying == true && Agents[0].healthPoints <= 0 )
+    {
+        gameRunning = false;
+        ClearConsole();
+        if ( playerPlaying )
+            cout<<"YOU ARE A FAILURE"<<endl;
+    }
+}
+
 void Update()
 {
     double threshold = 1 / (double) numberOfFrames;
@@ -1561,6 +1574,7 @@ void Update()
             PlacePowerups();
             CheckCollision();
             DrawMap();
+            GameFinale();
             frames++;
             pwframes++;
             timeCounter = 0;
@@ -1569,7 +1583,7 @@ void Update()
         if ( (double) framesCounter > (double) 1 )
         {
             //fout<<"frames per second: "<<frames<<endl;
-            fout<<nrOfAgents<<endl;
+            //fout<<nrOfAgents<<endl;
             framesCounter = 0;
             frames = 0;
         }
